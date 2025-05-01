@@ -1,242 +1,198 @@
-"""
-Data Structures
-Student Project
-Project Title:
-"""
+
 import requests
-import random
 
-url = "https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1"
-response = requests.get(url).json()
-deck_id = response["deck_id"]
-usernames = []
-passwords = []
-balances = []
-# Draw cards
-cards_url = "https://deckofcardsapi.com/api/deck/" + deck_id + "/draw/?count=" + str(2)
-cards_response = requests.get(cards_url).json()
-hand = cards_response["cards"]
+# Fetch a new deck of cards from the API
+def get_new_deck():
+    url = "https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1"
+    response = requests.get(url).json()
+    return response["deck_id"]
 
-# Calculate hand value
-value = 0
-aces = 0
-for card in hand:
-    if card["value"] in ["KING", "QUEEN", "JACK"]:
-        value += 10
-    elif card["value"] == "ACE":
-        aces += 1
-        value += 11  # Assume ace is 11 initially
-    else:
-        value += int(card["value"])
 
-while value > 21 and aces:
-    value -= 10  # Convert one ace from 11 to 1 if value over 21
-    aces -= 1
+# Draw cards from the deck
+def draw_cards(deck_id, count=2):
+    url = "https://deckofcardsapi.com/api/deck/" + deck_id + "/draw/?count=" + str(count)
+    response = requests.get(url).json()
+    return response["cards"]
 
-running = True
 
-while running:
-    print("Options: sign up, login, exit ")
-    option = input("which would you like to do: ")
-    
-    ## -- Exiting -- ##
-    if option == "exit":
-        break
-    ## -- if the user types login -- ##
-    if option == "login":
-        enter_username = input("enter your username")
-        ## checks if the username exists ##
-        if enter_username not in usernames:
- 
-            print("That username is incorrect or doesnt exist please try again")
-            
-            continue
-        enter_password = input("enter your password ")
-        ## checks if input for password exist ##
-        if enter_password not in passwords:
- 
-            print("That password is incorrect or doesnt exist please try again")
-            
-            continue
-        ## -- Balance display -- ##
-        index = passwords.index(enter_password)
-        
-        current = balances[index] 
-
-        print("your balance is $" + str(current))
-        
-        current = int(current) 
-        
-        spend = int(input("How much do you want to bet: "))  
-        
-        ##- checks if the balance is less then or equal to -##
-        if spend <= current: 
- 
-            current -= spend 
-
-            balances[index] = current 
-
-            print("your new balance is $" + str(balances[index]))
-            
-            game_over = False
-            dealer_turn = True
-            while not game_over:
-                
-                # Start blackjack game
-                print("Welcome to Blackjack!")
-                
-                # Draw hands for player and dealer
-                player_hand = requests.get("https://deckofcardsapi.com/api/deck/" + deck_id + "/draw/?count=2").json()["cards"]
-                dealer_hand = requests.get("https://deckofcardsapi.com/api/deck/" + deck_id + "/draw/?count=2").json()["cards"]
-                
-                # Display initial hands
-                print("Player's cards:")
-                for card in player_hand:
-                    print(card["value"] + " of " + card["suit"])
-                print()
-                
-                print("Dealer's cards:")
-                for card in dealer_hand:
-                    print(card["value"] + " of " + card["suit"])
-                print()
-                
-                # Player's turn
-                player_turn = True
-                player_sum = 0
-                for card in player_hand:
-                    if card["value"] in ["KING", "QUEEN", "JACK"]:
-                        player_sum += 10
-                    elif card["value"] == "ACE":
-                        player_sum += 11
-                        aces += 1
-                    else:
-                        player_sum += int(card["value"])
-                
-                while player_turn:
-                    print("Your current total is: " + str(player_sum))
-                    choice = input("Do you want to hit or stand? (h/s): ").lower()
-                    if choice == "h":
-                        new_card = requests.get("https://deckofcardsapi.com/api/deck/" + deck_id + "/draw/?count=1").json()["cards"][0]
-                        
-                        player_hand.append(new_card)
-                        print("You drew: " + new_card["value"] + " of " + new_card["suit"])
-                        if new_card["value"] in ["KING", "QUEEN", "JACK"]:
-                            player_sum += 10
-                        elif new_card["value"] == "ACE":
-                            player_sum += 11
-                            aces += 1
-                        else:
-                            
-                            player_sum += int(new_card["value"])
-                
-                        while player_sum > 21 and aces:
-                            player_sum -= 10
-                            aces -= 1
-                
-                        if player_sum > 21:
-                            print("You busted with a total of: " + str(player_sum))
-                            player_turn = False
-                    elif choice == "s":
-                        print("You stand with a total of: " + str(player_sum))
-                        player_turn = False
-                    else:
-                        print("Invalid input. Please enter 'h' to hit or 's' to stand.")
-                
-                # Dealer's turn
-                # Dealer's turn will be skipped if the player has already-
-                # bust(gone over 21)
-                if player_sum > 21:
-                    dealer_turn = False
-                dealer_sum = 0
-                aces = 0
-                for card in dealer_hand:
-                    if card["value"] in ["KING", "QUEEN", "JACK"]:
-                        dealer_sum += 10
-                    elif card["value"] == "ACE":
-                        dealer_sum += 11
-                        aces += 1
-                    else:
-                        dealer_sum += int(card["value"])
-                
-                while dealer_sum < 17 and dealer_turn == True :
-                    new_card = requests.get("https://deckofcardsapi.com/api/deck/" + deck_id + "/draw/?count=1").json()["cards"][0]
-                    dealer_hand.append(new_card)
-                    print("Dealer drew: " + new_card["value"] + " of " + new_card["suit"])
-                    
-                    if new_card["value"] in ["KING", "QUEEN", "JACK"]:
-                        dealer_sum += 10
-                    elif new_card["value"] == "ACE":
-                        dealer_sum += 11
-                        aces += 1
-                    else:
-                        dealer_sum += int(new_card["value"])
-                
-                    while dealer_sum > 21 and aces:
-                        dealer_sum -= 10
-                        aces -= 1
-                
-                print("Dealer's total is: " + str(dealer_sum))
-                
-                # Determine winner
-                if player_sum > 21:
-                    print("Dealer wins! You busted.")
-                    if current == 0:
-                        print("your balance is empty and your account will be deleted as a result")
-                        if index < len(passwords) and index < len(balances):
-                    
-                            del passwords[index]
-                            del usernames[index]
-                            del balances[index]
-                elif dealer_sum > 21:
-                    print("You win! Dealer busted.")
-                    current += spend
-                    current += spend
-                    balances[index] = current
-                    print("your new balance is $" + str(balances[index]))
-                elif player_sum > dealer_sum:
-                    print("You win!")
-                    current += spend
-                    current += spend
-                    balances[index] = current
-                    print("your new balance is $" + str(balances[index]))
-                elif player_sum < dealer_sum:
-                    print("Dealer wins!")
-                    print("your new balance is $" + str(balances[index]))
-                    if current == 0:
-                        print("your balance is empty and your account will be deleted as a result")
-                        if index < len(passwords) and index < len(balances):
-                    
-                            del passwords[index]
-                            del usernames[index]
-                            del balances[index]
-                else:
-                    print("It's a tie!")
-                    current += spend
-                    balances[index] = current
-                    print("your new balance is $" + str(balances[index]))
-                game_over = True
-    if option == "sign up":
-        new_username = input("create a username : ")
-        if new_username in usernames:
- 
-            print("That username is taken please try again")
-            
-            continue
+# Calculate the total value of a hand
+def calculate_hand_value(hand):
+    value = 0
+    aces = 0
+    for card in hand:
+        if card["value"] in ["KING", "QUEEN", "JACK"]:
+            value += 10
+        elif card["value"] == "ACE":
+            aces += 1
+            value += 11  # Assume Ace is 11 initially
         else:
-            print(new_username + " is vaild")
-            
-            new_password = input(" create a password : ")
-            if new_password in passwords:
- 
-                print("That password is taken please try again")
-                
-                continue
+            value += int(card["value"])
+
+    # Adjust for Aces if total exceeds 21
+    while value > 21 and aces:
+        value -= 10
+        aces -= 1
+
+    return value
+
+
+# Handle user sign-up
+def sign_up(usernames, passwords, balances):
+    new_username = input("Create a username: ")
+    if new_username in usernames:
+        print("That username is taken, please try again.")
+        return
+
+    new_password = input("Create a password: ")
+    if new_password in passwords:
+        print("That password is taken, please try again.")
+        return
+
+    usernames.append(new_username)
+    passwords.append(new_password)
+    balances.append(50)  # Initialize new account with $50
+    print(new_username + " registered successfully! $50 has been added to your account.")
+
+
+# Handle user login
+def login(usernames, passwords, balances):
+    username = input("Enter your username: ")
+    if username not in usernames:
+        print("That username does not exist. Please try again.")
+        return None, None
+
+    password = input("Enter your password: ")
+    if password not in passwords:
+        print("That password is incorrect. Please try again.")
+        return None, None
+
+    index = usernames.index(username)
+    return index, balances[index]
+
+
+# Main game logic with betting
+def play_blackjack(index, usernames, passwords, balances):
+    deck_id = get_new_deck()
+
+    # Display the player's current balance
+    current_balance = balances[index]
+    print("Your current balance is: $" + str(current_balance))
+
+    # Prompt the player to place a bet
+    while True:
+        try:
+            bet = int(input("How much would you like to bet? "))
+            if bet > current_balance:
+                print("You cannot bet more than your current balance!")
+            elif bet <= 0:
+                print("Bet must be greater than 0!")
             else:
-                ## adds the new username and password if both are not taken ##
-                print(new_password + " is vaild")
-                passwords.append(new_password)
-                usernames.append(new_username)
-                ## creates a new balance for your new account
-                print("50$ is being added to your new account.")
-                adding_balance = 50
-                balances.append(adding_balance)
+                break
+        except ValueError:
+            print("Please enter a valid number.")
+
+    # Deduct the bet from the balance
+    current_balance -= bet
+    print("You placed a bet of $" + str(bet) + ". Remaining balance: $" + str(current_balance))
+
+    # Initial card draw
+    player_hand = draw_cards(deck_id, count=2)
+    dealer_hand = draw_cards(deck_id, count=2)
+    player_value = calculate_hand_value(player_hand)
+    dealer_value = calculate_hand_value(dealer_hand)
+
+    # Display player's initial hand
+    print("\nYour initial hand:")
+    for card in player_hand:
+        print(card["value"] + " of " + card["suit"])
+    print("Hand value: " + str(player_value))
+
+    # Player's turn
+    while player_value < 21:
+        choice = input("\nHit or stand? (h/s): ").lower()
+        if choice == 'h':
+            new_card = draw_cards(deck_id, count=1)[0]
+            player_hand.append(new_card)
+            player_value = calculate_hand_value(player_hand)
+            print("You drew: " + new_card["value"] + " of " + new_card["suit"])
+            print("Your hand now:")
+            for card in player_hand:
+                print(card["value"] + " of " + card["suit"])
+            print("Hand value: " + str(player_value))
+        elif choice == 's':
+            print("You chose to stand.")
+            break
+        else:
+            print("Invalid choice, please type 'h' for hit or 's' for stand.")
+
+    # Check if player busted
+    if player_value > 21:
+        print("You busted! Dealer wins.")
+    else:
+        # Dealer's turn
+        print("\nDealer's turn...")
+        while dealer_value < 17:
+            new_card = draw_cards(deck_id, count=1)[0]
+            dealer_hand.append(new_card)
+            dealer_value = calculate_hand_value(dealer_hand)
+            print("Dealer drew: " + new_card["value"] + " of " + new_card["suit"])
+
+        print("\nDealer's hand:")
+        for card in dealer_hand:
+            print(card["value"] + " of " + card["suit"])
+        print("Dealer's hand value: " + str(dealer_value))
+
+        # Determine the winner
+        if dealer_value > 21 or player_value > dealer_value:
+            print("You win!")
+            current_balance += bet * 2
+        elif player_value < dealer_value:
+            print("Dealer wins!")
+        else:
+            print("It's a tie! Your bet is returned.")
+            current_balance += bet
+
+    # Update the player's balance
+    balances[index] = current_balance
+    print("Your updated balance is: $" + str(current_balance))
+
+    # Check if balance is zero and delete account if necessary
+    if current_balance == 0:
+        print("Your balance is $0. Your account will now be deleted.")
+        del usernames[index]
+        del passwords[index]
+        del balances[index]
+
+
+# Main program
+def main():
+    usernames = []
+    passwords = []
+    balances = []
+
+    while True:
+        print("Options: sign up, login, play, exit")
+        option = input("What would you like to do? ").lower()
+
+        if option == "sign up":
+            sign_up(usernames, passwords, balances)
+        elif option == "login":
+            index, balance = login(usernames, passwords, balances)
+            if index is not None:
+                print("Welcome back! Your balance is $" + str(balance) + ".")
+        elif option == "play":
+            if len(usernames) == 0:
+                print("No players are logged in. Please sign up or log in first.")
+            else:
+                index, _ = login(usernames, passwords, balances)
+                if index is not None:
+                    play_blackjack(index, usernames, passwords, balances)
+        elif option == "exit":
+            print("Thank you for playing. Goodbye!")
+            break
+        else:
+            print("Invalid option, please try again.")
+
+
+if __name__ == "__main__":
+    main()
